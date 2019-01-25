@@ -3,39 +3,84 @@
 # include <math.h>
 # include <stdio.h>
 # include <cs50.h>
+# define epsilon 0.01
 
-typedef double (*TFunc)(double);
+// declare functions
+double f(double); //f(x)
+double df(double); //df(x)
+double iter_f(double); // x1 = x0 - f(x0)/df(x0)
+double hf(double); //fabs(f(x)/df(x))
 
-// df(Xn)
-double df(TFunc f, double x)
+// declare function pointer
+double (*func)(double);
+double (*func_f)(double);
+double (*func_df)(double);
+double (*func_hf)(double);
+
+
+// get f(x)
+double f(double x)
 {
-    const double dx = 1.0e-6;
-    double dy = f(x+dx) - f(x-dx);
+    return x*x -25;
+}
+
+
+// get df(x), using symmetric difference quotient method
+double df(double x)
+{
+    double dx = 1.0e-6;
+    func_f = f;
+    double dy = (*func_f)(x+dx) - (*func_f)(x-dx); // pass x, dx to f(x)
     return dy / (2.*dx);
 }
 
-// f(Xn)
-double f(double x)
+// get x1
+double iter_f(double x)
 {
-    return x*x - 25;
+    func_f = f;
+    func_df = df;
+
+    double fx = (*func_f)(x);
+    double dfx = (*func_df)(x);
+
+    double x1 = x - (fx/dfx);
+    return x1;
 }
 
-// find Xn+1
-double iter_f(double float_input, double fx, double dfx)
+// get fx/dfx
+double hf(double x)
 {
-    double x;
-    return x = float_input - (fx / dfx);
+    func_f = f;
+    func_df = df;
+
+    double fx = (*func_f)(x);
+    double dfx = (*func_df)(x);
+
+    double h = fabs(fx/dfx);
+    return h;
 }
 
 int main()
 {
-    printf("The function is (x*x - 25); now enter a float as an initial guess: ");
-    double float_input = get_float(); // user input, initial guess, x0
-    double dfx = df(f, float_input); // get the derivative df(x)
-    double fx = f(float_input); // get f(x)
-    double x1 = iter_f(float_input, fx, dfx); //get Xn+1 = Xn - f(Xn)/df(Xn)
-    printf("Initail guess, x0, is: %lf\n", float_input);
-    printf("df(x0) is: %lf\n", dfx);
-    printf("x1 is: %lf\n", x1);
+    printf("Enter your initial guess x0: \n");
+    double x0 = get_float();
+    func_f = f;
+    func_df = df;
+    func_hf = hf;
+    func = iter_f;
 
+    for(int i = 0; i < 9; i++) // Max steps of guessing, 10 steps
+    {
+        double fx = (*func_f)(x0);
+        double dfx = (*func)(x0);
+        double x1 = (*func)(x0);
+        double hfx = (*func_hf)(x0);
+        printf("%dth guess, x0: %lf, fx: %lf, dfx: %lf, fx/dfx: %lf, x1: %lf\n", i + 1, x0, fx, dfx, hfx, x1);
+        if (hfx <= 0.01)
+        {
+            printf("End of guess at %dth step\n", i + 1);
+            break;
+        }
+        x0 = x1;
+    }
 }
